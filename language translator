@@ -1,0 +1,118 @@
+import speech_recognition as sr
+import threading as td
+from tkinter import *
+from gtts import gTTS
+import os
+from pydub import AudioSegment
+from pydub.playback import play
+from googletrans import Translator
+
+# Initialize the recognizer
+r = sr.Recognizer()
+
+# Function to start voice input
+def start():
+    global flag, b1
+    flag = False
+    b1["text"] = "Stop Speaking"
+    b1["command"] = stop
+    # Start a new thread for voice detection
+    td.Thread(target=detect).start()
+
+# Function to stop voice input
+def stop():
+    global flag, b1
+    flag = True
+    b1["text"] = "Give Voice Input"
+    b1["command"] = start
+
+# Function to detect voice commands
+def detect():
+    global flag, txtbx
+    while True:
+        if flag:
+            print("Stopped listening")
+            break
+        try:
+            with sr.Microphone() as source:
+                r.adjust_for_ambient_noise(source, duration=0.2)
+                audio = r.listen(source)
+                text = r.recognize_google(audio).lower()
+                txtbx.insert("end", text)
+        except sr.RequestError as e:
+            print("Could not request results; {0}".format(e))
+            break
+        except sr.UnknownValueError:
+            print("Unknown error occurred")
+            break
+
+# Function to convert text to speech
+def speak():
+    global txtbx2
+    text = txtbx2.get("1.0", END)
+    language = languages[languages.index(v2.get())]
+    myobj = gTTS(text=text, lang=language, slow=False)
+    try:
+        os.remove("temp.mp3")
+    except:
+        pass
+    myobj.save("temp.mp3")
+    song = AudioSegment.from_mp3("temp.mp3")
+    song.export("temp.wav", format="wav")
+    os.system("start temp.wav")
+
+# Function to translate text
+def translate():
+    global txtbx, txtbx2
+    text = txtbx.get("1.0", END)
+    translator = Translator()
+    translated = translator.translate(text, dest=v2.get()).text
+    txtbx2.delete("1.0", END)
+    txtbx2.insert(END, translated)
+
+# GUI setup
+main = Tk()
+main.title("Voiceprint Translator")
+main.geometry("940x570")
+main.config(bg="#C7F8FF")
+main.resizable(0, 0)
+
+# Language options
+languages = ["en", "hi", "ta", "gu", "mr"]  # Corresponding to English, Hindi, Tamil, Gujarati, Marathi
+
+# Input Box
+Label(main, text="Input Box:", font=("", 12, "bold"), bg="#17C3B2", fg="black").place(x=44, y=70)
+txtbx = Text(main, width=40, height=7, font=("", 12, "bold"), relief="solid", bd=0)
+txtbx.place(x=50, y=100)
+
+# Output Box
+Label(main, text="Output Box:", font=("", 12, "bold"), bg="#17C3B2", fg="black").place(x=780, y=60)
+txtbx2 = Text(main, width=40, height=7, font=("", 12, "bold"), relief="solid", bd=0)
+txtbx2.place(x=510, y=100)
+
+# Buttons
+b1 = Button(main, text="Give Voice Input", font=("", 12, "bold"), width=35, height=1, bg="#FEF9EF", fg="black", command=start, relief="solid", bd=4)
+b1.place(x=50, y=250)
+
+Button(main, text="Speak Text", font=("", 12, "bold"), width=35, height=1, bg="#FEF9EF", fg="black", command=speak, relief="solid", bd=4).place(x=510, y=250)
+
+Button(main, text="Translate", font=("", 15, "bold"), width=71, height=3, bg="#FEF9EF", fg="black", command=translate, relief="solid", bd=3).place(x=30, y=446)
+
+# Language selection
+Label(main, text="Select Language:", font=("", 12, "bold"), bg="#17C3B2", fg="black").place(x=50, y=300)
+Label(main, text="Select Language:", font=("", 12, "bold"), bg="#17C3B2", fg="black").place(x=510, y=300)
+
+v1 = StringVar(main)
+v1.set(languages[0])
+o1 = OptionMenu(main, v1, *languages)
+o1.config(font=("", 12, "bold"), width=36, bg="#FEF9EF", fg="black", relief="solid", bd=1)
+o1.place(x=50, y=340)
+
+v2 = StringVar(main)
+v2.set(languages[1])
+o2 = OptionMenu(main, v2, *languages)
+o2.config(font=("", 12, "bold"), width=36, bg="#FEF9EF", fg="black", relief="solid", bd=1)
+o2.place(x=510, y=340)
+
+main.mainloop()
+
